@@ -2,7 +2,7 @@
 
 #####
 # If calling from another script, can pass the following environment variables to control behavior:
-#  EXE - Path to the raremetalworker binary
+#  EXE - Path to the raremetal binary
 #  BASE_DIR - Relative path from where the script is called to the base repository directory
 #  TEST_DIR - Where to find these tests
 #
@@ -21,14 +21,15 @@ set -x
 BASE_DIR=${BASE_DIR:-../..}
 
 # Some internal default values
-_DEFAULT_EXE=${BASE_DIR}/bin/raremetalworker
-_DEFAULT_TEST_DIR=${BASE_DIR}/raremetalworker/test
+_DEFAULT_EXE=${BASE_DIR}/bin/raremetal
+_DEFAULT_TEST_DIR=${BASE_DIR}/raremetal/test
 
 # Values to override
 EXE=${EXE:-$_DEFAULT_EXE}
 TEST_DIR=${TEST_DIR:-$_DEFAULT_TEST_DIR}
 DATA_DIR=${BASE_DIR}/data
 
+INPUTS_DIR=${DATA_DIR}/tests/inputs_expected
 RESULTS_ACTUAL_DIR=${TEST_DIR}/results_actual  # Where are the actual calculated results for this test run stored?
 RESULTS_EXPECTED_DIR=${DATA_DIR}/tests/results_expected  # Where are the expected outputs stored, for comparison to this run?
 
@@ -60,24 +61,15 @@ mkdir -p $RESULTS_ACTUAL_DIR
 #  http://genome.sph.umich.edu/wiki/Tutorial:_RAREMETAL
 TUTORIAL_RESULTS_DIR=${RESULTS_EXPECTED_DIR}/tutorial
 
-$EXE --ped "${TUT_DIR}/example1.ped" --dat "${TUT_DIR}/example1.dat" --vcf "${TUT_DIR}/example1.vcf.gz" --traitName QT1 \
-                  --inverseNormal --makeResiduals --kinSave --kinGeno --prefix "${RESULTS_ACTUAL_DIR}/STUDY1"
+# TODO: Summary/covfiles have slightly hardcoded paths (relative to test directories)
+$EXE --summaryFiles "${INPUTS_DIR}/tutorial/summaryfiles" --covFiles "${INPUTS_DIR}/tutorial/covfiles" --groupFile "${TUT_DIR}/group.file" \
+           --SKAT --burden --MB --VT --longOutput --tabulateHits --hitsCutoff 1e-05 \
+           --prefix "${RESULTS_ACTUAL_DIR}/COMBINED.QT1" --hwe 1.0e-05 --callRate 0.95
 
 # Output files must exist, and match the expected content (skip files that contain mutable fields like dates)
-expect_outputs=("STUDY1.QT1.singlevar.score.txt" "STUDY1.QT1.singlevar.cov.txt" "STUDY1.Empirical.Kinship.gz")
-verify_results ${TUTORIAL_RESULTS_DIR} ${RESULTS_ACTUAL_DIR} ${expect_outputs[@]}
-
-
-##################################################
-# Test 1b: The Raremetal tutorial (second study)
-##################################################
-$EXE --ped "${TUT_DIR}/example2.ped" --dat "${TUT_DIR}/example2.dat" --vcf "${TUT_DIR}/example2.vcf.gz" --traitName QT1 \
-                  --inverseNormal --makeResiduals --kinSave --kinGeno --prefix "${RESULTS_ACTUAL_DIR}/STUDY2"
-
-# Output files must exist, and match the expected content (skip files that contain mutable fields like dates)
-expect_outputs=("STUDY2.QT1.singlevar.score.txt" "STUDY2.QT1.singlevar.cov.txt" "STUDY2.Empirical.Kinship.gz")
+expect_outputs=("COMBINED.QT1.meta.burden.results" "COMBINED.QT1.meta.MB.results" "COMBINED.QT1.meta.singlevar.results" "COMBINED.QT1.meta.SKAT_.results" "COMBINED.QT1.meta.VT_.results")
 verify_results ${TUTORIAL_RESULTS_DIR} ${RESULTS_ACTUAL_DIR} ${expect_outputs[@]}
 
 
 #### Print a message when all tests completed
-echo "All Raremetalworker tests completed successfully"
+echo "All Raremetal tests completed successfully"
